@@ -1,0 +1,27 @@
+services:
+  ministack:
+    image: ministackorg/ministack:1.5.18
+    ports:
+      - "127.0.0.1:4566:4566"
+    environment:
+      MINISTACK_HOST: localhost
+      EKS_BASE_PORT: "16443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # O sidecar k3s é iniciado pelo Ministack diretamente no Docker do host;
+    # sua porta 16443 é publicada por esse sidecar, não pelo compose.
+  stackport:
+    image: davireis/stackport
+    container_name: stackport
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4567:8080"
+    environment:
+      AWS_ENDPOINT_URL: http://ministack:4566
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_REGION: us-east-1
+      STACKPORT_PORT: "8080"
+
+    depends_on:
+      - ministack

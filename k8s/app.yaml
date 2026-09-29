@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-eks
+  labels:
+    app: hello-eks
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-eks
+  template:
+    metadata:
+      labels:
+        app: hello-eks
+    spec:
+      containers:
+        - name: web
+          # Atualize a tag a cada release; a mudança dispara o RollingUpdate.
+          image: 000000000000.dkr.ecr.us-east-1.amazonaws.com/hello-eks:v8
+          ports:
+            - containerPort: 5001
+              name: http
+          env:
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: hello-eks-config
+                  key: LOG_LEVEL
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-eks
+spec:
+  selector:
+    app: hello-eks
+  ports:
+    - name: http
+      port: 5001
+      targetPort: http
+  type: ClusterIP
